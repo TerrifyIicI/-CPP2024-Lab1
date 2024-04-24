@@ -1,0 +1,12 @@
+# Ignore everything in the project folder
+*
+
+# Except cpp files
+!*.cpp
+
+# Except gitignore file
+!.gitignore
+
+# Except solution and project files
+!*.sln
+!*.vcxproj
