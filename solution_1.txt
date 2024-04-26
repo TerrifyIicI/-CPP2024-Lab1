@@ -1,8 +1,0 @@
-Roots are real and different: inf, -nan(ind)
-Roots are complex and different.
-Roots are real and different: 2.65, -2.65
-Roots are complex and different.
-Roots are complex and different.
-Roots are real and different: -0.00, 1.00
-Roots are real and same: -nan(ind)
-Roots are real and same: -nan(ind)
