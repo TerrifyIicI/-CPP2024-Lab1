@@ -1,0 +1,8 @@
+Roots are real and same: -nan(ind)
+Roots are complex and different: (0.25, 1.20), (0.25, -1.20)
+Roots are real and different: 2.65, -2.65
+Roots are complex and different: (0.67, -1.37), (0.67, 1.37)
+Roots are complex and different: (1.00, 1.73), (1.00, -1.73)
+Roots are real and different: -0.00, 1.00
+Roots are real and same: -nan(ind)
+Roots are real and same: -nan(ind)
