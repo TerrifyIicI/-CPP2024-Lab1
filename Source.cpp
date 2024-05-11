@@ -6,6 +6,9 @@
 #include <iomanip>
 #include <string>
 #include <complex>
+#include <string.h>
+#include <regex>
+#include <vector>
 
 using namespace std;
 
@@ -13,6 +16,12 @@ struct QuadraticEquation {
     double a;
     double b;
     double c;
+};
+
+struct Solution {
+    string equation;
+    vector<string> solutions;
+    string name;
 };
 
 class FileReader {
@@ -23,7 +32,7 @@ public:
     FileReader(const char* filename) {
         file = fopen(filename, "rt");
         if (file == nullptr) {
-            cerr << "Error file " << filename << endl;
+            std::cerr << "РћС€РёР±РєР° С„Р°Р№Р»Р° " << filename << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -43,6 +52,47 @@ public:
         fgets(line, 256, file);
         return line;
     }
+
+    Solution readAndProcessLine() {
+        char* line = readLine();
+        string str(line);
+        delete[] line;
+
+        Solution sol;
+        istringstream iss(str);
+        vector<std::string> tokens;
+        string token;
+
+        while (iss >> token) {
+            tokens.push_back(token);
+        }
+
+        // РРјСЏ СЃС‚СѓРґРµРЅС‚Р° РІСЃРµРіРґР° РїРѕСЃР»РµРґРЅРµРµ
+        sol.name = tokens.back();
+        tokens.pop_back();
+
+        // РџСЂРѕРІРµСЂСЏРµРј, СЏРІР»СЏРµС‚СЃСЏ Р»Рё РїРѕСЃР»РµРґРЅРёР№ СЌР»РµРјРµРЅС‚ РєРѕСЂРЅРµРј
+        regex root_regex("([\\-\\+]?\\d*\\.?\\d*(?:[\\-\\+]?\\d*\\.?\\d*i)?)");
+        if (std::regex_match(tokens.back(), root_regex)) {
+            sol.solutions.push_back(tokens.back());
+            tokens.pop_back();
+        }
+
+        // РџСЂРѕРІРµСЂСЏРµРј, СЏРІР»СЏРµС‚СЃСЏ Р»Рё СЃР»РµРґСѓСЋС‰РёР№ СЌР»РµРјРµРЅС‚ РєРѕСЂРЅРµРј
+        if (!tokens.empty() && std::regex_match(tokens.back(), root_regex)) {
+            sol.solutions.push_back(tokens.back());
+            tokens.pop_back();
+        }
+
+        // РћСЃС‚Р°Р»СЊРЅРѕРµ СЃС‡РёС‚Р°РµРј СѓСЂР°РІРЅРµРЅРёРµРј
+        std::ostringstream oss;
+        for (const auto& t : tokens) {
+            oss << t << " ";
+        }
+        sol.equation = oss.str();
+
+        return sol;
+    }
 };
 
 void addValue(QuadraticEquation& equation, int sign, double value, int power) {
@@ -57,77 +107,77 @@ void addValue(QuadraticEquation& equation, int sign, double value, int power) {
     }
 }
 
-// parseEquation разбирает строку и преобразовывает ее в структуру QuadraticEquation
+// parseEquation СЂР°Р·Р±РёСЂР°РµС‚ СѓСЂР°РІРµРЅРёРµ РёР· СЃС‚СЂРѕРєРё Рё Р·Р°РїРёСЃС‹РІР°РµС‚ РµРіРѕ РІ СЃС‚СЂСѓРєС‚СѓСЂСѓ QuadraticEquation
 QuadraticEquation parseEquation(const char* line) {
-    QuadraticEquation equation = { 0, 0, 0 }; // инициализация уравнения с нулевыми коэффициентами
-    bool isRightSide = false; // флаг для определения, достигли ли мы правой части уравнения (после знака '=')
-    int sign = 1; // знак перед переменной (по умолчанию положительный)
-    double value = 0; // значение переменной
+    QuadraticEquation equation = { 0, 0, 0 }; // РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ СЃС‚СЂСѓРєС‚СѓСЂС‹ QuadraticEquation РЅСѓР»СЏРјРё
+    bool isRightSide = false; // С„Р»Р°Рі, СѓРєР°Р·С‹РІР°СЋС‰РёР№, РЅР°С…РѕРґРёРјСЃСЏ Р»Рё РјС‹ РЅР° РїСЂР°РІРѕР№ СЃС‚РѕСЂРѕРЅРµ СѓСЂР°РІРЅРµРЅРёСЏ (РїРѕСЃР»Рµ Р·РЅР°РєР° '=')
+    int sign = 1; // С‚РµРєСѓС‰РёР№ Р·РЅР°Рє (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Р№)
+    double value = 0; // С‚РµРєСѓС‰РµРµ Р·РЅР°С‡РµРЅРёРµ (РєРѕСЌС„С„РёС†РёРµРЅС‚ РїСЂРё РїРµСЂРµРјРµРЅРЅРѕР№)
     int i = 0;
 
-    while (i < strlen(line)) { 
-        if (line[i] >= '0' && line[i] <= '9') { // если символ - цифра
-            value = value * 10 + (line[i] - '0'); // преобразуем символ в число и добавляем к текущему значению
+    while (i < strlen(line)) {
+        if (line[i] >= '0' && line[i] <= '9') { // РµСЃР»Рё С‚РµРєСѓС‰РёР№ СЃРёРјРІРѕР» - С†РёС„СЂР°
+            value = value * 10 + (line[i] - '0'); // РґРѕР±Р°РІР»СЏРµРј С†РёС„СЂСѓ Рє С‚РµРєСѓС‰РµРјСѓ Р·РЅР°С‡РµРЅРёСЋ
         }
-        else if (line[i] == 'x') { // если символ - 'x' (переменная)
+        else if (line[i] == 'x') { // РµСЃР»Рё С‚РµРєСѓС‰РёР№ СЃРёРјРІРѕР» - 'x' (РїРµСЂРµРјРµРЅРЅР°СЏ)
             i++;
             if (value == 0) {
                 value = 1;
             }
-            if (line[i] == '^') { // если после 'x' идет '^' (степень)
+            if (line[i] == '^') { // РµСЃР»Рё РїРѕСЃР»Рµ 'x' СЃР»РµРґСѓРµС‚ '^' (СЃС‚РµРїРµРЅСЊ)
                 if ((line[i + 1] > '2') || (i < strlen(line) - 2 && line[i + 2] >= '0' && line[i + 2] <= '9')) {
-                    cout << "This is a trap, equation is not quadratic" << endl; // если степень не равна 2, то это не квадратное уравнение
+                    cout << "Р­С‚Рѕ Р»РѕРІСѓС€РєР°, СѓСЂР°РІРЅРµРЅРёРµ РЅРµ РєРІР°РґСЂР°С‚РЅРѕРµ" << endl; // РµСЃР»Рё СЃС‚РµРїРµРЅСЊ Р±РѕР»СЊС€Рµ 2, С‚Рѕ СѓСЂР°РІРЅРµРЅРёРµ РЅРµ РєРІР°РґСЂР°С‚РЅРѕРµ
                     equation = { 0, 0, 0 };
                     return equation;
                 }
-                if (line[i + 1] == '2') { // если степень равна 2
+                if (line[i + 1] == '2') { // РµСЃР»Рё СЃС‚РµРїРµРЅСЊ СЂР°РІРЅР° 2
                     i++;
-                    addValue(equation, sign, value, 2); // добавляем значение к коэффициенту при x^2
+                    addValue(equation, sign, value, 2); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє РєРѕСЌС„С„РёС†РёРµРЅС‚Сѓ РїСЂРё x^2
                 }
-                else if (line[i + 1] == '0') { // если степень равна 0
+                else if (line[i + 1] == '0') { // РµСЃР»Рё СЃС‚РµРїРµРЅСЊ СЂР°РІРЅР° 0
                     i++;
-                    addValue(equation, sign, value, 0); // добавляем значение к свободному члену
+                    addValue(equation, sign, value, 0); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє СЃРІРѕР±РѕРґРЅРѕРјСѓ С‡Р»РµРЅСѓ
                 }
-                else { // если степень равна 1
-                    addValue(equation, sign, value, 1); // добавляем значение к коэффициенту при x
+                else { // РµСЃР»Рё СЃС‚РµРїРµРЅСЊ СЂР°РІРЅР° 1
+                    addValue(equation, sign, value, 1); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє РєРѕСЌС„С„РёС†РёРµРЅС‚Сѓ РїСЂРё x
                 }
                 value = 0;
             }
-            else { // если после 'x' нет '^', то степень равна 1
+            else { // РµСЃР»Рё РїРѕСЃР»Рµ 'x' РЅРµС‚ '^', С‚Рѕ СЃС‚РµРїРµРЅСЊ СЂР°РІРЅР° 1
                 i--;
                 if (value == 0) {
                     value = 1;
                 }
-                addValue(equation, sign, value, 1); // добавляем значение к коэффициенту при x
+                addValue(equation, sign, value, 1); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅ  Рµ Рє РєРѕСЌС„С„РёС†РёРµРЅС‚Сѓ РїСЂРё x
             }
             value = 0;
         }
-        else if (line[i] == '+' || line[i] == '-') { // если символ - '+' или '-'
+        else if (line[i] == '+' || line[i] == '-') { // РµСЃР»Рё С‚РµРєСѓС‰РёР№ СЃРёРјРІРѕР» - '+' РёР»Рё '-'
             if (value != 0) {
-                addValue(equation, sign, value, 0); // добавляем значение к свободному члену
+                addValue(equation, sign, value, 0); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє СЃРІРѕР±РѕРґРЅРѕРјСѓ С‡Р»РµРЅСѓ
                 value = 0;
             }
-            sign = (line[i] == '+') ? 1 : -1; // меняем знак перед следующей переменной
+            sign = (line[i] == '+') ? 1 : -1; // РјРµРЅСЏРµРј Р·РЅР°Рє РЅР° РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅС‹Р№
             if (isRightSide) {
                 sign *= -1;
             }
         }
-        else if (line[i] == '=') { // если символ - '='
+        else if (line[i] == '=') { // РµСЃР»Рё С‚РµРєСѓС‰РёР№ СЃРёРјРІРѕР» - '='
             if (value != 0) {
-                addValue(equation, sign, value, 0); // добавляем значение к свободному члену
+                addValue(equation, sign, value, 0); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє СЃРІРѕР±РѕРґРЅРѕРјСѓ С‡Р»РµРЅСѓ
                 value = 0;
             }
-            isRightSide = true; // меняем флаг, указывающий, что достигли правой части уравнения
-            sign = -1; // меняем знак перед следующей переменной
+            isRightSide = true; // РїРµСЂРµС…РѕРґРёРј РЅР° РїСЂР°РІСѓСЋ СЃС‚РѕСЂРѕРЅСѓ СѓСЂР°РІРЅРµРЅРёСЏ
+            sign = -1; // РјРµРЅСЏРµРј Р·РЅР°Рє РЅР° РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅС‹Р№
         }
         i++;
     }
 
     if (value != 0) {
-        addValue(equation, sign, value, 0); // добавляем оставшееся значение к свободному члену
+        addValue(equation, sign, value, 0); // РґРѕР±Р°РІР»СЏРµРј Р·РЅР°С‡РµРЅРёРµ Рє СЃРІРѕР±РѕРґРЅРѕРјСѓ С‡Р»РµРЅСѓ
     }
     if (equation.a == 0) {
-        cout << "This is a trap, equation is not quadratic" << endl; // если коэффициент при x^2 равен 0, то это не квадратное уравнение
+        cout << "Р­С‚Рѕ Р»РѕРІСѓС€РєР°, СѓСЂР°РІРЅРµРЅРёРµ РЅРµ РєРІР°РґСЂР°С‚РЅРѕРµ" << endl; // РµСЃР»Рё РєРѕСЌС„С„РёС†РёРµРЅС‚ РїСЂРё x^2 СЂР°РІРµРЅ 0, С‚Рѕ СѓСЂР°РІРЅРµРЅРёРµ РЅРµ РєРІР°РґСЂР°С‚РЅРѕРµ
         equation = { 0, 0, 0 };
         return equation;
     }
@@ -182,41 +232,41 @@ struct ComplexNumber {
     }
 };
 
-// calculateRoots решает квадратное уравнение и возвращает значения корней в виде комплексных чисел
+// calculateRoots РІС‹С‡РёСЃР»СЏРµС‚ РєРѕСЂРЅРё РєРІР°РґСЂР°С‚РЅРѕРіРѕ СѓСЂР°РІРЅРµРЅРёСЏ Рё   РѕР·РІСЂР°С‰Р°РµС‚ РёС… РІ РІРёРґРµ РїР°СЂС‹ РєРѕРјРїР»РµРєСЃРЅС‹С… С‡РёСЃРµР»
 pair<ComplexNumber, ComplexNumber> calculateRoots(QuadraticEquation equation) {
-    // Вычисляем дискриминант уравнения
+    // РІС‹С‡РёСЃР»СЏРµРј РґРёСЃРєСЂРёРјРёРЅР°РЅС‚
     double discriminant = equation.b * equation.b - 4 * equation.a * equation.c;
 
-    // Проверяем, не является ли уравнение тождеством (все коэффициенты равны нулю)
+    // РїСЂРѕРІРµСЂСЏРµРј, РЅРµ СЏРІР»СЏРµС‚СЃСЏ Р»Рё СѓСЂР°РІРЅРµРЅРёРµ С‚СЂРёРІРёР°Р»СЊРЅС‹Рј
     if (equation.a == 0 && equation.b == 0 && equation.c == 0) {
-        throw invalid_argument("It's a trap");
+        throw invalid_argument(" 0");
     }
-    // Если дискриминант больше нуля, уравнение имеет два различных вещественных корня
+    // РµСЃР»Рё РґРёСЃРєСЂРёРјРёРЅР°РЅС‚ Р±РѕР»СЊС€Рµ 0, С‚Рѕ РєРѕСЂРЅРё РІРµС‰РµСЃС‚РІРµРЅРЅС‹Рµ Рё СЂР°Р·Р»РёС‡РЅС‹Рµ
     else if (discriminant > 0) {
         double root1_real = (-equation.b + sqrt(discriminant)) / (2 * equation.a);
         double root2_real = (-equation.b - sqrt(discriminant)) / (2 * equation.a);
         return make_pair(ComplexNumber(root1_real, 0.0), ComplexNumber(root2_real, 0.0));
     }
-    // Если дискриминант равен нулю, уравнение имеет один вещественный корень (кратный корень)
+    // РµСЃР»Рё РґРёСЃРєСЂРёРјРёРЅР°РЅС‚ СЂР°РІРµРЅ 0, С‚Рѕ РєРѕСЂРµРЅСЊ РІРµС‰РµСЃС‚РІРµРЅРЅС‹Р№ Рё РѕРґРёРЅ
     else if (discriminant == 0) {
         double root_real = -equation.b / (2 * equation.a);
-        // Возвращаем пару одинаковых вещественных корней
+        // РІРѕР·РІСЂР°С‰Р°РµРј РїР°СЂСѓ РѕРґРёРЅР°РєРѕРІС‹С… РєРѕРјРїР»РµРєСЃРЅС‹С… С‡РёСЃРµР»
         return make_pair(ComplexNumber(root_real, 0.0), ComplexNumber(root_real, 0.0));
     }
-    // Если дискриминант меньше нуля, уравнение имеет два комплексных корня
+    // РµСЃР»Рё РґРёСЃРєСЂРёРјРёРЅР°РЅС‚ РјРµРЅСЊС€Рµ 0, С‚Рѕ РєРѕСЂРЅРё РєРѕРјРїР»РµРєСЃРЅС‹Рµ Рё СЃРѕРїСЂСЏР¶РµРЅРЅС‹Рµ
     else {
         double realPart = -equation.b / (2 * equation.a);
         double imagPart = sqrt(-discriminant) / (2 * equation.a);
-        // Возвращаем пару комплексных корней
+        // РІРѕР·РІСЂР°С‰Р°РµРј РїР°СЂСѓ РєРѕРјРїР»РµРєСЃРЅС‹С… С‡РёСЃРµР»
         return make_pair(ComplexNumber(realPart, imagPart), ComplexNumber(realPart, -imagPart));
     }
 }
 
 
 void writeToFile(const pair<ComplexNumber, ComplexNumber>& roots, FileWriter& file) {
-    const int precision = 5;//точность
+    const int precision = 5;//С‚РѕС‡РЅРѕСЃС‚СЊ
     const int length = 20;
-    char buffer[2 * (precision + length) + 1];//длина итоговой строки
+    char buffer[2 * (precision + length) + 1];//Р±СѓС„РµСЂ РґР»СЏ Р·Р°РїРёСЃРё
 
     ComplexNumber root1 = roots.first;
     ComplexNumber root2 = roots.second;
@@ -242,7 +292,11 @@ void writeToFile(const pair<ComplexNumber, ComplexNumber>& roots, FileWriter& fi
         root2_str += (root2.imag >= 0 ? " + " : " - ") + to_string(abs(root2.imag)) + "i";
     }
 
-    if ((root1.imag == 0) && (root1.imag == 0)) {
+
+    if ((root1.real == root2.real) && (root1.imag == root2.imag)) {
+        fprintf(file.file, "%-*s\n", length, root1_str.c_str());
+    }
+    else if ((root1.imag == 0) && (root1.imag == 0)) {
         fprintf(file.file, "%-*s    %-*s\n", length, root1_str.c_str(), length, root2_str.c_str());
     }
     else {
@@ -263,20 +317,19 @@ void solveAndWrite(QuadraticEquation equation, FileWriter& file) {
 int main() {
     char filename[16];
     //strcpy(filename, "equations.txt");
-    cout << "Enter the input file name: ";
+    cout << "Р’РІРµРґРёС‚Рµ РёРјСЏ РІС…РѕРґРЅРѕРіРѕ С„Р°Р№Р»Р°: ";
     cin >> filename;
     FileReader fileReader(filename);
 
-    cout << "Enter the output file name: ";
+    cout << "Р’РІРµРґРёС‚Рµ РёРјСЏ РІС‹С…РѕРґРЅРѕРіРѕ С„Р°Р№Р»Р°: ";
     cin >> filename;
     FileWriter outputFile(filename);
 
     while (!fileReader.isEndOfFile()) {
-        char* line = fileReader.readLine();
-        QuadraticEquation equation = parseEquation(line);
+        Solution sol = fileReader.readAndProcessLine();
+        QuadraticEquation equation = parseEquation(sol.equation.c_str());
         printEquation(equation);
         solveAndWrite(equation, outputFile);
-        delete[] line;
     }
 
     return 0;
